@@ -8,7 +8,7 @@
 
 ## Концепция
 
-Restore Manager устанавливается на **резервном (standby) сервере** и хранит копии бэкапов, поступающих по rsync с основного сервера через [Backup Manager](https://github.com/YOUR_GITHUB_ORG/remnawave-backup-manager).
+Restore Manager устанавливается на **резервном (standby) сервере** и хранит копии бэкапов, поступающих по rsync с основного сервера через [Backup Manager](https://github.com/remnatools/remnawave-backup-manager).
 
 При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель работает на резервном.
 
@@ -21,7 +21,7 @@ Restore Manager устанавливается на **резервном (standb
 - **DNS переключение** — обновляет A-записи в Cloudflare через API (шаг 3)
 - **Брендинг** — кастомный логотип, favicon, название
 - **Управление бэкапами** — список, удаление, авточистка по лимиту
-- Работает **без nginx** — SSL напрямую через uvicorn (xray занимает порт 443)
+- Работает **без nginx** — SSL напрямую через uvicorn (xray занимает порт 443 - резервный сервер как node)
 
 ## Шаги wizard
 
@@ -38,7 +38,7 @@ Restore Manager устанавливается на **резервном (standb
 ### Быстрый старт (одна команда)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ORG/remnawave-restore-manager/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/remnatools/remnawave-restore-manager/main/install.sh | bash
 ```
 
 ### Ручная установка
@@ -53,7 +53,7 @@ curl https://get.acme.sh | sh && source ~/.bashrc
 **2. Клонировать репо**
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_ORG/remnawave-restore-manager.git ~/remnawave-restore-manager
+git clone https://github.com/remnatools/remnawave-restore-manager.git ~/remnawave-restore-manager
 cd ~/remnawave-restore-manager
 ```
 
@@ -152,7 +152,7 @@ remnawave-restore-manager/
 
 ## Связанные проекты
 
-- **[Remnawave Backup Manager](https://github.com/YOUR_GITHUB_ORG/remnawave-backup-manager)** — создаёт бэкапы и отправляет их на этот сервер по rsync
+- **[Remnawave Backup Manager](https://github.com/remnatools/remnawave-backup-manager)** — создаёт бэкапы и отправляет их на этот сервер по rsync
 
 ## Лицензия
 
