@@ -1,6 +1,6 @@
 # Remnawave Restore Manager
 
-Аварийный веб-инструмент для восстановления [Remnawave](https://github.com/remnawave) VPN-панели на резервном сервере.
+Аварийный веб-инструмент для восстановления [Remnawave](https://github.com/remnawave) VPN-панели, [BEDOLAGA бота](https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot) и [BEDOLAGA кабинета](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet) на резервном сервере.
 
 ![Python](https://img.shields.io/badge/Python-FastAPI-009688?style=flat-square)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square)
@@ -10,7 +10,7 @@
 
 Restore Manager устанавливается на **резервном (standby) сервере** и хранит копии бэкапов, поступающих по rsync с основного сервера через [Backup Manager](https://github.com/remnatools/remnawave-backup-manager).
 
-При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель работает на резервном.
+При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель,бот и кабинет работает на резервном.
 
 ## Возможности
 
