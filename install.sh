@@ -6,7 +6,7 @@ info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-REPO_URL="https://github.com/YOUR_GITHUB_ORG/remnawave-restore-manager.git"
+REPO_URL="https://github.com/remnatools/remnawave-restore-manager.git"
 INSTALL_DIR="${INSTALL_DIR:-/root/remnawave-restore-manager}"
 LOG_FILE="/var/log/remnawave_restore.log"
 
