@@ -38,7 +38,8 @@ Restore Manager устанавливается на **резервном (standb
 ### Быстрый старт (одна команда)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/remnatools/remnawave-restore-manager/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/remnatools/remnawave-restore-manager/main/install.sh -o install.sh
+chmod +x install.sh && ./install.sh
 ```
 
 Скрипт автоматически:
