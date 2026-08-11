@@ -1,0 +1,10 @@
+.env
+data/tokens.json
+data/config.json
+__pycache__/
+*.pyc
+nginx/fullchain.pem
+nginx/privkey.key
+app/ssl/
+data/
+templates/index_old.html

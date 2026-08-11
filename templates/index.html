@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" id="favicon-link" href="/favicon.ico" type="image/x-icon">
+<title>{{BRAND_NAME}} — Restore Manager</title>
+<style>
+  :root {
+    --bg: #0d0f14; --surface: #151820; --surface2: #1c2030;
+    --border: #252a3a; --accent: #e74c3c; --accent2: #2ecc71;
+    --warn: #f39c12; --text: #e2e8f0; --muted: #6b7a99;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; font-size: 14px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #922b21); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .logo-title { white-space: nowrap; }
+  .logo-version { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .card-value { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .tabs { display: flex; gap: 2px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+  .tab { flex: 1; padding: 8px 16px; border-radius: 7px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: center; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #c0392b; }
+  .btn-success { background: #1a3a25; color: var(--accent2); border: 1px solid #2d5a3a; }
+  .btn-success:hover:not(:disabled) { background: #1f4a2e; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover:not(:disabled) { background: var(--border); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; transition: border-color 0.15s; font-family: inherit; }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  textarea.form-input { min-height: 80px; resize: vertical; font-family: var(--mono); font-size: 12px; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; font-size: 13px; opacity: 0; transform: translateY(10px); transition: all 0.2s; z-index: 999; max-width: 320px; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.ok { border-color: var(--accent2); color: var(--accent2); }
+  #toast.err { border-color: var(--accent); color: var(--accent); }
+
+  /* Mobile — отступ снизу и toast сверху */
+  @media (max-width: 700px) {
+    .container { padding-bottom: 80px; }
+    #toast { bottom: auto; top: 64px; right: 12px; left: 12px; max-width: none; font-size: 14px; }
+  }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Toggle ползунок — крупнее */
+  .toggle { position: relative; width: 52px; height: 28px; cursor: pointer; display: inline-block; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 28px; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+  /* Mobile адаптив */
+  @media (max-width: 700px) {
+    .container { padding: 12px; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .grid .card:last-child { grid-column: 1 / -1; }
+    .card { padding: 12px 14px; }
+    .card-value { font-size: 20px; }
+    .card-sub { font-size: 11px; }
+
+    /* Tabs как полноценное меню */
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+    .tab { padding: 10px 6px; font-size: 12px; border-radius: 7px; border: 1px solid transparent; }
+    .tab.active { background: var(--surface); color: var(--text); border-color: var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: 600; }
+
+    header { padding: 0 12px; height: 48px; }
+    .logo-title { font-size: 13px; }
+    .logo-version { display: inline; font-size: 10px; }
+    #server-ip { display: none; }
+
+    .step-header { padding: 12px 14px; gap: 10px; }
+    .step-num { width: 28px; height: 28px; font-size: 12px; flex-shrink: 0; }
+    .step-body { padding: 0 14px 14px; }
+    .step-actions { flex-wrap: wrap; gap: 6px; }
+    .btn { padding: 9px 14px; font-size: 13px; }
+    .btn-sm { padding: 7px 10px; font-size: 12px; }
+
+    #tab-settings > div { grid-template-columns: 1fr !important; }
+    .backup-select { font-size: 12px; }
+    .log-mini { font-size: 11px; max-height: 160px; }
+    .step-badge { font-size: 10px; padding: 2px 6px; }
+
+    /* Dry run card мобильный */
+    #dry-run-card { flex-wrap: nowrap; padding: 10px 12px; }
+    #dry-run-icon { font-size: 18px; }
+    #dry-run-label { font-size: 12px; }
+  }
+
+  @media (max-width: 400px) {
+    .grid { grid-template-columns: 1fr; }
+    .grid .card:last-child { grid-column: auto; }
+    .logo-title { font-size: 12px; }
+  }
+
+  /* Wizard */
+  .wizard { display: flex; flex-direction: column; gap: 12px; }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+  .step.active   { border-color: var(--accent); }
+  .step.done     { border-color: var(--accent2); }
+  .step.disabled { opacity: 0.5; pointer-events: none; }
+  .step-header { display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; user-select: none; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; transition: all 0.2s; }
+  .step.active .step-num   { border-color: var(--accent); color: var(--accent); }
+  .step.done   .step-num   { border-color: var(--accent2); color: var(--accent2); }
+  .step-title { font-weight: 600; font-size: 14px; flex: 1; }
+  .step-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; }
+  .badge-pending  { background: var(--surface2); color: var(--muted); }
+  .badge-active   { background: #3a1a1a; color: var(--accent); }
+  .badge-done     { background: #1a3a25; color: var(--accent2); }
+  .badge-running  { background: #2a2a1a; color: var(--warn); }
+  .step-body { display: none; padding: 0 20px 20px; }
+  .step.active .step-body { display: block; }
+  .step.done   .step-body { display: block; }
+  .log-mini { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: #a0b0c0; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin: 12px 0; }
+  .log-line-ok   { color: var(--accent2); }
+  .log-line-err  { color: var(--accent); }
+  .log-line-warn { color: var(--warn); }
+  .step-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* Backup selector */
+  .backup-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-family: var(--mono); font-size: 12px; margin-bottom: 12px; }
+  .backup-select:focus { outline: none; border-color: var(--accent); }
+  .backup-info-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--muted); margin-bottom: 12px; display: none; }
+  .backup-info-box.show { display: block; }
+
+  /* Alert */
+  .alert { border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 14px; }
+  .alert-warn { background: #2a2000; border: 1px solid #5a4000; color: var(--warn); }
+  .alert-danger { background: #3a1a1a; border: 1px solid #5a2a2a; color: var(--accent); }
+  .bg-swatch { width: 32px; height: 32px; border-radius: 6px; cursor: pointer; transition: transform 0.15s; flex-shrink: 0; }
+  .bg-swatch:hover { transform: scale(1.15); }
+  .bg-swatch.active { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon" id="logo-icon" style="background:{{LOGO_BG}}">
+      <img id="logo-img" src="/api/logo" style="width:100%;height:100%;object-fit:contain;border-radius:8px;display:none" onerror="this.style.display='none'">
+      <span id="logo-emoji" style="font-size:16px">🚨</span>
+    </div>
+    <span class="logo-title" id="brand-title">{{BRAND_NAME}} — Restore</span>
+    <span class="logo-version">v1.1.0</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span style="font-size:12px;color:var(--muted)" id="server-ip"></span>
+    <a href="#" onclick="doLogout()"><button class="logout-btn">Выйти</button></a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="alert alert-danger" style="margin-bottom:16px">
+    ⚠ Этот инструмент предназначен для аварийного восстановления. Убедитесь что основной сервер действительно недоступен перед переключением DNS.
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Бэкапов доступно</div>
+      <div class="card-value">{{BACKUP_COUNT}}</div>
+      <div class="card-sub">в /backups на этом сервере</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Последний бэкап</div>
+      <div class="card-value" style="font-size:16px;padding-top:6px">{{LATEST_BACKUP}}</div>
+      <div class="card-sub">дата создания</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cloudflare DNS</div>
+      <div class="card-value" style="font-size:18px;padding-top:4px">{{CF_STATUS}}</div>
+      <div class="card-sub">автопереключение DNS</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('wizard',this)">🚨 Восстановление</button>
+    <button class="tab" onclick="switchTab('backups',this)">💾 Бэкапы</button>
+    <button class="tab" onclick="switchTab('settings',this)">⚙️ Настройки</button>
+    <button class="tab" onclick="switchTab('log',this)">📋 Лог</button>
+  </div>
+
+  <!-- ── Wizard ── -->
+  <div id="tab-wizard" class="tab-content active">
+
+    <!-- Dry-run тоггл -->
+    <div id="dry-run-card" class="card" style="margin-bottom:16px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#2a2000;border-color:#5a4000;transition:all 0.2s">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span id="dry-run-icon" style="font-size:20px;flex-shrink:0">🧪</span>
+        <div style="min-width:0">
+          <div id="dry-run-label" style="font-weight:700;font-size:13px;color:var(--warn);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Режим симуляции (Dry Run) — АКТИВЕН</div>
+          <div id="dry-run-sublabel" style="font-size:11px;color:var(--muted);margin-top:2px">Без реальных изменений</div>
+        </div>
+      </div>
+      <label class="toggle" style="flex-shrink:0;width:52px;height:28px">
+        <input type="checkbox" id="dry-run-toggle" checked onchange="onDryRunToggle()">
+        <span class="toggle-slider" style="border-radius:28px"></span>
+      </label>
+    </div>
+
+    <div class="wizard" id="wizard">
+
+      <!-- Шаг 0: выбор бэкапа -->
+      <div class="step active" id="step-0">
+        <div class="step-header" onclick="toggleStep(0)">
+          <div class="step-num">0</div>
+          <div class="step-title">Выбрать бэкап</div>
+          <span class="step-badge badge-active" id="badge-0">Обязательно</span>
+        </div>
+        <div class="step-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Выберите бэкап из списка. Используется в шагах 2 и 4. Список обновляется по мере поступления rsync от основного сервера.
+          </div>
+          <select class="backup-select" id="backup-select" onchange="onBackupSelect()">
+            <option value="">— выберите бэкап —</option>
+          </select>
+          <div class="backup-info-box" id="backup-info"></div>
+        </div>
+      </div>
+
+      <!-- Шаг 1: подготовка системы -->
+      <div class="step disabled" id="step-1">
+        <div class="step-header" onclick="toggleStep(1)">
+          <div class="step-num">1</div>
+          <div class="step-title">Подготовка системы</div>
+          <span class="step-badge badge-pending" id="badge-1">Ожидание</span>
+        </div>
+        <div class="step-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Сканирует запущенные контейнеры и занятые порты. Предлагает остановить то что может помешать восстановлению.
+          </div>
+          <div class="step-actions" style="margin-bottom:12px">
+            <button class="btn btn-ghost" id="btn-1-scan" onclick="runScan(this)">🔍 Сканировать систему</button>
+            <button class="btn btn-danger" id="btn-1-stop-all" onclick="stopAll(this)" style="display:none">⏹ Остановить все</button>
+          </div>
+          <div id="scan-results" style="display:none">
+            <div id="containers-list" style="margin-bottom:12px"></div>
+            <div id="ports-list"></div>
+          </div>
+          <div class="log-mini" id="log-1" style="display:none"></div>
+          <div class="step-actions" style="margin-top:12px">
+            <button class="btn btn-primary" id="btn-1-done" onclick="completeStep1()" style="display:none">✓ Готово, перейти к шагу 2</button>
+            <span id="status-1" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Шаг 2 -->
+      <div class="step disabled" id="step-2">
+        <div class="step-header" onclick="toggleStep(2)">
+          <div class="step-num">2</div>
+          <div class="step-title">Восстановить базы данных</div>
+          <span class="step-badge badge-pending" id="badge-2">Ожидание</span>
+        </div>
+        <div class="step-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Восстанавливает <code>.env</code> файлы и базы данных панели и бота из выбранного бэкапа.
+          </div>
+          <div class="log-mini" id="log-2" style="display:none"></div>
+          <div class="step-actions">
+            <button class="btn btn-primary" id="btn-2-run" onclick="runStep2()">▶ Восстановить БД</button>
+            <button class="btn btn-ghost btn-sm" id="btn-2-check" onclick="checkDb()" style="display:none">✓ Проверить БД</button>
+            <span id="status-2" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Шаг 3 -->
+      <div class="step disabled" id="step-3">
+        <div class="step-header" onclick="toggleStep(3)">
+          <div class="step-num">3</div>
+          <div class="step-title">Переключить DNS</div>
+          <span class="step-badge badge-pending" id="badge-3">Ожидание</span>
+        </div>
+        <div class="step-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Обновляет A-записи в Cloudflare на IP этого сервера. После этого пользователи начнут подключаться сюда.
+          </div>
+          <div id="dns-warn-no-cf" class="alert alert-warn" style="display:none">
+            ⚠ Cloudflare не настроен. Перейдите в <a href="#" onclick="switchTab('settings', document.querySelectorAll('.tab')[2])" style="color:var(--warn)">Настройки</a> и добавьте токен.
+          </div>
+          <div class="log-mini" id="log-3" style="display:none"></div>
+          <div class="step-actions">
+            <button class="btn btn-primary" id="btn-3-run" onclick="runStep3()">▶ Переключить DNS</button>
+            <button class="btn btn-ghost btn-sm" id="btn-3-check" onclick="checkDns()" style="display:none">✓ Проверить DNS</button>
+            <span id="status-3" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Шаг 4 -->
+      <div class="step disabled" id="step-4">
+        <div class="step-header" onclick="toggleStep(4)">
+          <div class="step-num">4</div>
+          <div class="step-title">Запустить панель</div>
+          <span class="step-badge badge-pending" id="badge-4">Ожидание</span>
+        </div>
+        <div class="step-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Запускает весь стек: Remnawave панель, бот, кабинет. После запуска проверяется health API.
+          </div>
+          <div class="log-mini" id="log-4" style="display:none"></div>
+          <div class="step-actions">
+            <button class="btn btn-primary" id="btn-4-run" onclick="runStep4()">▶ Запустить стек</button>
+            <button class="btn btn-ghost btn-sm" id="btn-4-check" onclick="healthCheck()" style="display:none">✓ Health check</button>
+            <span id="status-4" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Бэкапы ── -->
+  <div id="tab-backups" class="tab-content">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Доступные бэкапы</div>
+      <div id="backups-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Настройки ── -->
+  <div id="tab-settings" class="tab-content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">Cloudflare DNS API</div>
+        <div class="form-group">
+          <label class="form-label">API токен</label>
+          <input class="form-input" id="cf-token" type="password" value="{{CF_TOKEN}}" placeholder="Токен с правами Edit zone DNS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Zone ID <span style="color:var(--muted)">(определяется автоматически)</span></label>
+          <input class="form-input" id="cf-zone-id" value="{{CF_ZONE_ID}}" placeholder="Оставьте пустым" style="font-family:var(--mono);font-size:12px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Домены для переключения (каждый с новой строки)</label>
+          <textarea class="form-input" id="cf-domains">{{CF_DOMAINS}}</textarea>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.8">
+          Как создать токен:<br>
+          1. <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" style="color:var(--accent)">dash.cloudflare.com/profile/api-tokens</a><br>
+          2. Create Token → шаблон <strong style="color:var(--text)">Edit zone DNS</strong><br>
+          3. Zone Resources → Include → Specific zone → <strong style="color:var(--text)">your-domain.com</strong><br>
+          4. Create Token → скопировать сюда<br>
+          <span style="color:#e74c3c">⚠ Не используйте Account API токены — нужен Zone токен</span>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveSettings()">Сохранить</button>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">Этот сервер</div>
+        <div class="form-group">
+          <label class="form-label">Алиас сервера</label>
+          <input class="form-input" id="server-alias" value="{{SERVER_ALIAS}}" placeholder="IONOS-DE Karlsruhe">
+        </div>
+        <div class="form-group">
+          <label class="form-label">IP этого сервера (куда переключать DNS)</label>
+          <input class="form-input" id="host-ip" value="{{HOST_IP}}" placeholder="YOUR_SERVER_IP" style="font-family:var(--mono)">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+          Алиас отображается в хедере вместо IP. На IP переключаются A-записи при восстановлении.
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-ghost" style="flex:1" onclick="detectIp()">🔍 Определить IP</button>
+          <button class="btn btn-primary" style="flex:1" onclick="saveServerSettings()">Сохранить</button>
+        </div>
+        <div style="margin-top:4px">
+          <div class="card-title" style="margin-bottom:10px">Хранение бэкапов</div>
+          <div class="form-group">
+            <label class="form-label">Хранить бэкапов максимум</label>
+            <input class="form-input" type="number" id="keep-backups" value="{{KEEP_BACKUPS}}" min="1" max="30" style="font-family:var(--mono)">
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Старые бэкапы удаляются автоматически при превышении лимита</div>
+          <button class="btn btn-ghost btn-sm" onclick="cleanupBackups()">🗑 Удалить старые сейчас</button>
+          <span id="cleanup-result" style="font-size:12px;margin-left:8px;color:var(--muted)"></span>
+        </div>
+        <div style="margin-top:16px">
+          <div class="card-title" style="margin-bottom:10px">Проверить Cloudflare</div>
+          <button class="btn btn-ghost btn-sm" onclick="testCf()">✓ Тест соединения с CF API</button>
+          <div id="cf-test-result" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Брендинг -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-title" style="margin-bottom:16px">Брендинг</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="form-group">
+            <label class="form-label">Название бренда</label>
+            <input class="form-input" id="brand-name-input" value="{{BRAND_NAME}}" placeholder="ВЛЕС">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Логотип (PNG, JPG, SVG, WEBP)</label>
+            <input type="file" class="form-input" id="logo-file" accept=".png,.jpg,.jpeg,.svg,.webp" style="padding:6px">
+          </div>
+          <div class="form-group" id="scale-row" style="display:none">
+            <label class="form-label">Масштаб: <span id="scale-val">100</span>%</label>
+            <input type="range" id="logo-scale" min="10" max="200" value="100" style="width:100%;accent-color:var(--accent)" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Фон иконки</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="bg-swatch" data-bg="linear-gradient(135deg,#e74c3c,#922b21)" style="background:linear-gradient(135deg,#e74c3c,#922b21)" onclick="selectBg(this)"></div>
+              <div class="bg-swatch" data-bg="linear-gradient(135deg,#4f8ef7,#7c4dff)" style="background:linear-gradient(135deg,#4f8ef7,#7c4dff)" onclick="selectBg(this)"></div>
+              <div class="bg-swatch" data-bg="linear-gradient(135deg,#2ecc71,#1a8a4a)" style="background:linear-gradient(135deg,#2ecc71,#1a8a4a)" onclick="selectBg(this)"></div>
+              <div class="bg-swatch" data-bg="linear-gradient(135deg,#f39c12,#d35400)" style="background:linear-gradient(135deg,#f39c12,#d35400)" onclick="selectBg(this)"></div>
+              <div class="bg-swatch" data-bg="#1c2030" style="background:#1c2030;border:1px solid var(--border)" onclick="selectBg(this)"></div>
+              <div class="bg-swatch" data-bg="transparent" style="background:transparent;border:1px dashed var(--muted)" onclick="selectBg(this)" title="Прозрачный"></div>
+              <input type="color" id="bg-color-picker" value="#e74c3c" style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);cursor:pointer;padding:2px" onchange="selectCustomBg(this.value)">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" style="flex:1" onclick="saveBranding()">Сохранить брендинг</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteLogo()" title="Удалить логотип">✕</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+          <div id="brand-preview" style="width:80px;height:80px;background:{{LOGO_BG}};border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:background 0.2s">
+            <canvas id="logo-canvas" width="80" height="80" style="display:none;border-radius:8px"></canvas>
+            <span id="preview-emoji" style="font-size:36px">🚨</span>
+          </div>
+          <div style="font-size:14px;font-weight:700" id="preview-name">{{BRAND_NAME}}</div>
+          <div style="font-size:11px;color:var(--muted)">Предпросмотр</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ── Лог ── -->
+  <div id="tab-log" class="tab-content">
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:600">Лог восстановления</div>
+      <button class="btn btn-ghost btn-sm" onclick="refreshLog()">↻ Обновить</button>
+    </div>
+    <div id="log-box" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-y:auto;max-height:600px;color:#a0b0c0">Загрузка...</div>
+  </div>
+
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('auth_token');
+if (!TOKEN) window.location.href = '/login';
+
+// Данные с сервера
+const BACKUPS = {{BACKUPS_JSON}};
+let selectedBackup = null;
+let stepsDone = [false, false, false, false, false]; // индексы 0-4
+
+function authFetch(url, options = {}) {
+  options.headers = options.headers || {};
+  options.headers['Authorization'] = 'Bearer ' + TOKEN;
+  return fetch(url, options);
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'backups') renderBackupsList();
+  if (name === 'log') refreshLog();
+}
+
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3500);
+}
+
+// ── Dry run ───────────────────────────────────────────────────────────────────
+let dryRun = true;
+
+function onDryRunToggle() {
+  dryRun = document.getElementById('dry-run-toggle').checked;
+  const card     = document.getElementById('dry-run-card');
+  const icon     = document.getElementById('dry-run-icon');
+  const label    = document.getElementById('dry-run-label');
+  const sublabel = document.getElementById('dry-run-sublabel');
+
+  if (!dryRun && !confirm('⚠ Вы отключаете режим симуляции.\n\nВсе дальнейшие действия будут РЕАЛЬНЫМИ:\n— восстановление БД из бэкапа\n— переключение DNS\n— запуск стека панели\n\nПродолжить?')) {
+    document.getElementById('dry-run-toggle').checked = true;
+    dryRun = true;
+    return;
+  }
+
+  if (dryRun) {
+    card.style.background  = '#2a2000';
+    card.style.borderColor = '#5a4000';
+    icon.textContent       = '🧪';
+    label.style.color      = 'var(--warn)';
+    label.textContent      = 'Режим симуляции (Dry Run) — АКТИВЕН';
+    sublabel.textContent   = 'Без реальных изменений';
+  } else {
+    card.style.background  = '#3a1a1a';
+    card.style.borderColor = '#5a2a2a';
+    icon.textContent       = '🚨';
+    label.style.color      = 'var(--accent)';
+    label.textContent      = 'БОЕВОЙ РЕЖИМ — изменения реальные!';
+    sublabel.textContent   = 'Все действия применяются немедленно';
+  }
+}
+
+// ── Backup selector ───────────────────────────────────────────────────────────
+function initBackupSelect() {
+  const sel = document.getElementById('backup-select');
+  BACKUPS.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.name;
+    opt.textContent = `${b.name}  (${b.size_human}, ${b.files.length} файлов)`;
+    sel.appendChild(opt);
+  });
+  // НЕ выбираем автоматически — пользователь должен сделать это сам
+}
+
+function onBackupSelect() {
+  const name = document.getElementById('backup-select').value;
+  const box  = document.getElementById('backup-info');
+  if (!name) {
+    box.classList.remove('show');
+    selectedBackup = null;
+    return;
+  }
+  const b = BACKUPS.find(x => x.name === name);
+  if (!b) return;
+  selectedBackup = b;
+  // Сохраняем в sessionStorage чтобы не терять при ресканировании
+  sessionStorage.setItem('selectedBackup', JSON.stringify(b));
+
+  const files = b.files.join(', ');
+  box.innerHTML = `<strong>${b.name}</strong> · ${b.size_human}<br><span style="color:var(--muted)">Файлы: ${files}</span>`;
+  box.classList.add('show');
+
+  // Пометить шаг 0 как done и разблокировать шаг 1
+  const step0 = document.getElementById('step-0');
+  const badge0 = document.getElementById('badge-0');
+  step0.classList.remove('active');
+  step0.classList.add('done');
+  badge0.className = 'step-badge badge-done';
+  badge0.textContent = '✓ Выбран';
+  stepsDone[0] = true;
+
+  // Разблокировать шаг 1
+  const step1 = document.getElementById('step-1');
+  const badge1 = document.getElementById('badge-1');
+  step1.classList.remove('disabled');
+  step1.classList.add('active');
+  badge1.className = 'step-badge badge-active';
+  badge1.textContent = 'Готов к запуску';
+}
+
+// ── Wizard helpers ────────────────────────────────────────────────────────────
+function toggleStep(n) {}
+
+function setStepRunning(n) {
+  const step  = document.getElementById(`step-${n}`);
+  const badge = document.getElementById(`badge-${n}`);
+  step.classList.remove('disabled');
+  step.classList.add('active');
+  badge.className = 'step-badge badge-running';
+  badge.textContent = '⏳ Выполняется...';
+}
+
+function setStepDone(n) {
+  const step  = document.getElementById(`step-${n}`);
+  const badge = document.getElementById(`badge-${n}`);
+  if (!step || !badge) return;
+  step.classList.remove('active');
+  step.classList.add('done');
+  badge.className = 'step-badge badge-done';
+  badge.textContent = (dryRun && n > 0) ? '✓ Проверено (Dry Run)' : '✓ Выполнено';
+  stepsDone[n] = true;
+  const next  = document.getElementById(`step-${n+1}`);
+  const nbadge = document.getElementById(`badge-${n+1}`);
+  if (next) {
+    next.classList.remove('disabled');
+    next.classList.add('active');
+  }
+  if (nbadge && (nbadge.textContent === 'Ожидание' || nbadge.textContent === 'Готов к запуску')) {
+    nbadge.className = 'step-badge badge-active';
+    nbadge.textContent = 'Готов к запуску';
+  }
+}
+
+function setStepError(n) {
+  const badge = document.getElementById(`badge-${n}`);
+  badge.className = 'step-badge badge-active';
+  badge.textContent = '✗ Ошибка — повторите';
+}
+
+function renderLog(logId, logs) {
+  const box = document.getElementById(logId);
+  box.style.display = 'block';
+  box.innerHTML = logs.map(line => {
+    const cls = line.startsWith('✓') ? 'log-line-ok'
+              : line.startsWith('✗') ? 'log-line-err'
+              : (line.startsWith('⚠') || line.startsWith('⏳') || line.startsWith('ℹ')) ? 'log-line-warn' : '';
+    return `<span class="${cls}">${escHtml(line)}</span>`;
+  }).join('\n');
+  box.scrollTop = box.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setBtn(id, disabled, html) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.disabled = disabled;
+  if (html !== undefined) b.innerHTML = html;
+}
+
+// ── Step 1: Scan ──────────────────────────────────────────────────────────────
+async function runScan(btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Сканирую...';
+  setStepRunning(1);
+
+  const r = await authFetch('/api/step/1/scan');
+  const d = await r.json();
+
+  btn.disabled = false;
+  btn.innerHTML = '🔍 Сканировать снова';
+
+  const scanEl  = document.getElementById('scan-results');
+  const contEl  = document.getElementById('containers-list');
+  const portsEl = document.getElementById('ports-list');
+  scanEl.style.display = 'block';
+
+  const blockingCount = d.blocking_count || 0;
+  const effectiveBlocking = dryRun ? 0 : blockingCount;
+  const effectivePorts    = dryRun ? true : (!d.port_issues || d.port_issues.length === 0);
+
+  if (d.containers && d.containers.length) {
+    contEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Необходимо остановить перед восстановлением:</div>` +
+      d.containers.map(c => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:6px">
+          <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--muted)">${c.type}</span>
+          <span style="font-family:var(--mono);font-size:12px;flex:1">${c.label} <span style="color:var(--muted)">(${c.name})</span></span>
+          <span style="font-size:11px;color:var(--warn)">${c.status}</span>
+          <button class="btn btn-danger btn-sm" id="stop-btn-${c.name}" onclick="stopContainer('${c.name}', '${c.type}', this)">⏹ Стоп</button>
+          <span id="stop-status-${c.name}" style="font-size:11px;color:var(--muted)"></span>
+        </div>`).join('');
+    document.getElementById('btn-1-stop-all').style.display = 'inline-flex';
+  } else {
+    contEl.innerHTML = '<div style="font-size:12px;color:var(--accent2);margin-bottom:8px">✓ Нет процессов которые могут помешать</div>';
+    document.getElementById('btn-1-stop-all').style.display = 'none';
+  }
+
+  if (d.port_issues && d.port_issues.length) {
+    portsEl.innerHTML = `<div style="font-size:12px;color:var(--accent);margin-top:10px;margin-bottom:8px">✗ Занятые порты (освободятся после остановки сервисов выше):</div>` +
+      d.port_issues.map(p => `
+        <div style="font-size:12px;padding:6px 10px;background:var(--bg);border:1px solid #5a2a2a;border-radius:6px;margin-bottom:4px;font-family:var(--mono);color:var(--accent)">
+          ✗ Порт ${p.port}: ${escHtml(p.detail)}
+        </div>`).join('');
+  } else {
+    portsEl.innerHTML = '<div style="font-size:12px;color:var(--accent2);margin-top:8px">✓ Критические порты свободны</div>';
+  }
+
+  // Кнопка "Готово" — только когда нет мешающих процессов И порты свободны
+  // В Dry Run считаем всё ОК — сервисы намеренно не останавливаются
+  const portsFree = !d.port_issues || d.port_issues.length === 0;
+  const doneBtn = document.getElementById('btn-1-done');
+  if (effectiveBlocking === 0 && effectivePorts) {
+    doneBtn.style.display = 'inline-flex';
+    doneBtn.disabled = false;
+  } else {
+    doneBtn.style.display = 'none';
+  }
+
+  document.getElementById('badge-1').className = 'step-badge badge-active';
+  document.getElementById('badge-1').textContent = effectiveBlocking > 0
+    ? `⚠ Остановите ${effectiveBlocking} сервис(ов)`
+    : effectivePorts
+      ? (dryRun ? '✓ Проверено (Dry Run)' : '✓ Система готова')
+      : '⚠ Порты ещё заняты';
+}
+
+function stopAll(btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Останавливаю...';
+
+  const logBox = document.getElementById('log-1');
+  logBox.style.display = 'block';
+  logBox.innerHTML = '';
+
+  const token = localStorage.getItem('auth_token');
+  const url = `/api/step/1/stop-all/stream?dry_run=${dryRun}&token=${token}`;
+  const es = new EventSource(url);
+
+  es.onmessage = async (e) => {
+    const d = JSON.parse(e.data);
+    if (d.ping) return;
+    if (d.done) {
+      es.close();
+      btn.disabled = false;
+      btn.innerHTML = '⏹ Остановить все';
+      toast('✅ Готово, сканирую...', 'ok');
+      await new Promise(res => setTimeout(res, 500));
+      await runScan(document.getElementById('btn-1-scan'));
+      return;
+    }
+    if (d.log) appendLog('log-1', d.log);
+  };
+
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.innerHTML = '⏹ Остановить все';
+    toast('❌ Ошибка соединения', 'err');
+  };
+}
+
+async function stopContainer(name, type, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  const r = await authFetch('/api/step/1/stop', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, type, dry_run: dryRun }),
+  });
+  const d = await r.json();
+  btn.innerHTML = '⏹ Стоп';
+  const statusEl = document.getElementById(`stop-status-${name}`);
+  if (r.ok) {
+    statusEl.style.color = dryRun ? 'var(--warn)' : 'var(--accent2)';
+    statusEl.textContent = d.message;
+    if (!dryRun) {
+      btn.disabled = true;
+      await new Promise(res => setTimeout(res, 1000));
+      await runScan(document.getElementById('btn-1-scan'));
+    }
+  } else {
+    statusEl.style.color = 'var(--accent)';
+    statusEl.textContent = d.detail || 'Ошибка';
+    btn.disabled = false;
+  }
+}
+
+function completeStep1() {
+  setStepDone(1);
+  toast('✅ Шаг 1 завершён');
+}
+
+// ── Step 2 — SSE ─────────────────────────────────────────────────────────────
+function runStep2() {
+  if (!selectedBackup) { toast('Выберите бэкап на шаге 0', 'err'); return; }
+  const btn = document.getElementById('btn-2-run');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> ' + (dryRun ? 'Проверяю...' : 'Восстанавливаю...');
+  setStepRunning(2);
+
+  const logBox = document.getElementById('log-2');
+  logBox.style.display = 'block';
+  logBox.innerHTML = '';
+
+  const token = localStorage.getItem('auth_token');
+  const url = `/api/step/2/stream?backup_name=${encodeURIComponent(selectedBackup.name)}&dry_run=${dryRun}&token=${token}`;
+  const es = new EventSource(url);
+
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.ping) return;
+    if (d.done) {
+      es.close();
+      btn.disabled = false;
+      btn.innerHTML = dryRun ? '▶ Проверить файлы (Dry Run)' : '▶ Восстановить БД';
+      // Считаем успех если нет строк с ✗
+      const hasError = logBox.innerHTML.includes('log-line-err');
+      if (!hasError) {
+        setStepDone(2);
+        if (!dryRun) document.getElementById('btn-2-check').style.display = 'inline-flex';
+        toast('✅ Шаг 2 завершён');
+      } else {
+        setStepError(2);
+        toast('❌ Ошибка восстановления', 'err');
+      }
+      return;
+    }
+    if (d.log) appendLog('log-2', d.log);
+  };
+
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.innerHTML = '▶ Восстановить БД';
+    toast('❌ Соединение прервано', 'err');
+  };
+}
+
+function appendLog(logId, line) {
+  const box = document.getElementById(logId);
+  box.style.display = 'block';
+  const cls = line.startsWith('✓') ? 'log-line-ok'
+            : line.startsWith('✗') ? 'log-line-err'
+            : (line.startsWith('⚠') || line.startsWith('⏳') || line.startsWith('ℹ')) ? 'log-line-warn' : '';
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = line;
+  if (box.children.length > 0) box.appendChild(document.createTextNode('\n'));
+  box.appendChild(span);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function checkDb() {
+  const r = await authFetch('/api/step/2/check-db', { method: 'POST' });
+  const d = await r.json();
+  renderLog('log-2', d.logs || []);
+  document.getElementById('status-2').textContent = d.ok ? '✓ БД в порядке' : '✗ Ошибка БД';
+}
+
+// ── Step 3 ────────────────────────────────────────────────────────────────────
+async function runStep3() {
+  const label = dryRun ? '▶ Проверить DNS (Dry Run)' : '▶ Переключить DNS';
+  setBtn('btn-3-run', true, '<span class="spinner"></span> ' + (dryRun ? 'Проверяю...' : 'Переключаю...'));
+  setStepRunning(3);
+  const r = await authFetch('/api/step/3/update-dns', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
+  const d = await r.json();
+  renderLog('log-3', d.logs || []);
+  setBtn('btn-3-run', false, label);
+  if (d.ok) {
+    setStepDone(3);
+    document.getElementById('btn-3-check').style.display = 'inline-flex';
+    toast(dryRun ? `✅ DNS проверен (${d.updated} записей, без изменений)` : `✅ DNS обновлён (${d.updated} записей)`);
+  } else {
+    setStepError(3);
+    toast('❌ Ошибка DNS', 'err');
+  }
+}
+
+async function checkDns() {
+  setBtn('btn-3-check', true, '<span class="spinner"></span>');
+  const r = await authFetch('/api/step/3/check-dns', { method: 'POST' });
+  const d = await r.json();
+  setBtn('btn-3-check', false, '✓ Проверить DNS');
+  renderLog('log-3', d.logs || []);
+  document.getElementById('status-3').textContent = d.ok ? '✓ DNS обновлён' : '⏳ Ещё не применился';
+}
+
+// ── Step 4 ────────────────────────────────────────────────────────────────────
+// ── Step 4 — SSE ─────────────────────────────────────────────────────────────
+function runStep4() {
+  const btn = document.getElementById('btn-4-run');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> ' + (dryRun ? 'Проверяю...' : 'Запускаю...');
+  setStepRunning(4);
+
+  const logBox = document.getElementById('log-4');
+  logBox.style.display = 'block';
+  logBox.innerHTML = '';
+
+  const token = localStorage.getItem('auth_token');
+  const bname = selectedBackup ? selectedBackup.name : '';
+  const url = `/api/step/4/stream?backup_name=${encodeURIComponent(bname)}&dry_run=${dryRun}&token=${token}`;
+  const es = new EventSource(url);
+
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.ping) {
+      appendLog('log-4', '⏳ ...');
+      return;
+    }
+    if (d.done) {
+      es.close();
+      btn.disabled = false;
+      btn.innerHTML = dryRun ? '▶ Проверить стек (Dry Run)' : '▶ Запустить стек';
+      const hasError = logBox.innerHTML.includes('log-line-err');
+      if (!hasError) {
+        setStepDone(4);
+        if (!dryRun) document.getElementById('btn-4-check').style.display = 'inline-flex';
+        toast(dryRun ? '✅ Dry Run завершён' : '✅ Стек запущен');
+      } else {
+        setStepError(4);
+        toast('❌ Ошибка запуска', 'err');
+      }
+      return;
+    }
+    if (d.log) appendLog('log-4', d.log);
+  };
+
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.innerHTML = '▶ Запустить стек';
+    toast('❌ Соединение прервано', 'err');
+  };
+}
+
+async function healthCheck() {
+  setBtn('btn-4-check', true, '<span class="spinner"></span>');
+  const r = await authFetch('/api/step/4/health-check', { method: 'POST' });
+  const d = await r.json();
+  setBtn('btn-4-check', false, '✓ Health check');
+  renderLog('log-4', d.logs || []);
+  document.getElementById('status-4').textContent = d.ok ? '✓ Панель работает' : '⚠ Проверьте логи';
+}
+
+// ── Backups list ──────────────────────────────────────────────────────────────
+function renderBackupsList() {
+  const el = document.getElementById('backups-list');
+  if (!BACKUPS.length) { el.innerHTML = '<div style="color:var(--muted);padding:20px">Бэкапов нет</div>'; return; }
+  el.innerHTML = BACKUPS.map((b, i) => `
+    <div id="backup-row-${b.name}" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
+      <div style="color:var(--muted);font-size:12px;white-space:nowrap">${b.files.length} файлов</div>
+      <div style="font-family:var(--mono);font-size:13px;color:var(--accent);white-space:nowrap">${b.size_human}</div>
+      <button class="btn btn-ghost btn-sm" onclick="selectBackupFromList('${b.name}')" title="Выбрать для восстановления">↩</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.name}', this)" title="Удалить">✕</button>
+    </div>
+  `).join('');
+}
+
+async function deleteBackup(name, btn) {
+  if (!confirm(`Удалить бэкап ${name}?`)) return;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  const r = await authFetch(`/api/backups/${name}`, { method: 'DELETE' });
+  if (r.ok) {
+    document.getElementById(`backup-row-${name}`)?.remove();
+    // Убрать из BACKUPS
+    const idx = BACKUPS.findIndex(b => b.name === name);
+    if (idx !== -1) BACKUPS.splice(idx, 1);
+    toast('✅ Бэкап удалён');
+    // Обновить селектор на шаге 0
+    updateBackupSelect();
+  } else {
+    toast('❌ Ошибка удаления', 'err');
+    btn.disabled = false;
+    btn.innerHTML = '✕';
+  }
+}
+
+function selectBackupFromList(name) {
+  // Переключиться на вкладку Восстановление и выбрать бэкап
+  const b = BACKUPS.find(x => x.name === name);
+  if (!b) return;
+  selectedBackup = b;
+  sessionStorage.setItem('selectedBackup', JSON.stringify(b));
+  document.getElementById('backup-select').value = name;
+  onBackupSelect();
+  switchTab('wizard', document.querySelector('.tab'));
+  toast(`✅ Выбран бэкап ${name}`);
+}
+
+function updateBackupSelect() {
+  const sel = document.getElementById('backup-select');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— выберите бэкап —</option>';
+  BACKUPS.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.name;
+    opt.textContent = `${b.name}  (${b.size_human}, ${b.files.length} файлов)`;
+    sel.appendChild(opt);
+  });
+  if (BACKUPS.find(b => b.name === current)) sel.value = current;
+  else { selectedBackup = null; sessionStorage.removeItem('selectedBackup'); }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function saveSettings() {
+  const domains = document.getElementById('cf-domains').value.split('\n').filter(x => x.trim());
+  const r = await authFetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      cf_token:   document.getElementById('cf-token').value.trim(),
+      cf_zone_id: document.getElementById('cf-zone-id').value.trim(),
+      cf_domains: domains,
+    }),
+  });
+  toast(r.ok ? '✅ Настройки CF сохранены' : '❌ Ошибка', r.ok ? 'ok' : 'err');
+  if (r.ok) setTimeout(() => location.reload(), 800);
+}
+
+async function saveServerSettings() {
+  const r = await authFetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      host_ip:      document.getElementById('host-ip').value.trim(),
+      server_alias: document.getElementById('server-alias').value.trim(),
+      keep_backups: parseInt(document.getElementById('keep-backups').value) || 7,
+    }),
+  });
+  toast(r.ok ? '✅ Настройки сервера сохранены' : '❌ Ошибка', r.ok ? 'ok' : 'err');
+  if (r.ok) setTimeout(() => location.reload(), 800);
+}
+
+// ── Branding ──────────────────────────────────────────────────────────────────
+const HAS_LOGO = {{HAS_LOGO}};
+let currentBg = '{{LOGO_BG}}';
+let logoImage = null;
+
+function initBranding() {
+  if (HAS_LOGO) loadLogoToCanvas('/api/logo?' + Date.now());
+  document.getElementById('logo-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById('scale-row').style.display = 'block';
+    document.getElementById('logo-scale').value = 100;
+    document.getElementById('scale-val').textContent = '100';
+    loadLogoToCanvas(url);
+  });
+  document.getElementById('brand-name-input').addEventListener('input', e => {
+    document.getElementById('preview-name').textContent = e.target.value || 'ВЛЕС';
+  });
+  document.querySelectorAll('.bg-swatch').forEach(s => {
+    if (s.dataset.bg === currentBg) s.classList.add('active');
+  });
+}
+
+function loadLogoToCanvas(src) {
+  const img = new Image();
+  img.onload = () => {
+    logoImage = img; updatePreview();
+    document.getElementById('preview-emoji').style.display = 'none';
+    document.getElementById('logo-canvas').style.display = 'block';
+    document.getElementById('logo-img').src = src;
+    document.getElementById('logo-img').style.display = 'block';
+    document.getElementById('logo-emoji').style.display = 'none';
+  };
+  img.src = src;
+}
+
+function updatePreview() {
+  if (!logoImage) return;
+  const scale = parseInt(document.getElementById('logo-scale').value) / 100;
+  document.getElementById('scale-val').textContent = Math.round(scale * 100);
+  const canvas = document.getElementById('logo-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 80, 80);
+  const w = logoImage.naturalWidth * scale;
+  const h = logoImage.naturalHeight * scale;
+  ctx.drawImage(logoImage, (80-w)/2, (80-h)/2, w, h);
+}
+
+function selectBg(el) {
+  document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  currentBg = el.dataset.bg;
+  applyBg(currentBg);
+}
+
+function selectCustomBg(color) {
+  document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+  currentBg = color; applyBg(currentBg);
+}
+
+function applyBg(bg) {
+  document.getElementById('brand-preview').style.background = bg;
+  document.getElementById('logo-icon').style.background = bg;
+}
+
+async function saveBranding() {
+  const name = document.getElementById('brand-name-input').value.trim();
+  const file = document.getElementById('logo-file').files[0];
+  const fd = new FormData();
+  if (name) fd.append('brand_name', name);
+  fd.append('logo_bg', currentBg);
+  if (file) {
+    const canvas = document.getElementById('logo-canvas');
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    fd.append('logo', blob, 'logo.png');
+  }
+  const r = await authFetch('/api/branding', { method: 'POST', body: fd });
+  const d = await r.json();
+  if (r.ok) {
+    toast('✅ Брендинг сохранён');
+    document.getElementById('brand-title').textContent = (d.brand_name || 'ВЛЕС') + ' — Restore';
+    document.title = (d.brand_name || 'ВЛЕС') + ' — Restore Manager';
+    const oldFi = document.getElementById('favicon-link');
+    if (oldFi) oldFi.remove();
+    const fi = document.createElement('link');
+    fi.id = 'favicon-link'; fi.rel = 'icon';
+    fi.href = '/favicon.ico?' + Date.now(); fi.type = 'image/png';
+    document.head.appendChild(fi);
+  } else toast('❌ ' + (d.detail || 'Ошибка'), 'err');
+}
+
+async function deleteLogo() {
+  if (!confirm('Удалить логотип?')) return;
+  const r = await authFetch('/api/branding/logo', { method: 'DELETE' });
+  if (r.ok) {
+    logoImage = null;
+    document.getElementById('logo-canvas').style.display = 'none';
+    document.getElementById('preview-emoji').style.display = 'inline';
+    document.getElementById('logo-img').style.display = 'none';
+    document.getElementById('logo-emoji').style.display = 'inline';
+    document.getElementById('logo-file').value = '';
+    document.getElementById('scale-row').style.display = 'none';
+    toast('✅ Логотип удалён');
+  }
+}
+
+async function cleanupBackups() {
+  const r = await authFetch('/api/backups/cleanup', { method: 'POST' });
+  const d = await r.json();
+  const el = document.getElementById('cleanup-result');
+  if (r.ok) {
+    el.style.color = 'var(--accent2)';
+    el.textContent = d.count > 0 ? `✓ Удалено: ${d.count}` : '✓ Всё в порядке';
+  } else {
+    el.style.color = 'var(--accent)';
+    el.textContent = '✗ Ошибка';
+  }
+}
+
+async function detectIp() {
+  const r = await authFetch('/api/myip');
+  const d = await r.json();
+  if (r.ok) {
+    document.getElementById('host-ip').value = d.ip;
+    toast('✅ IP определён: ' + d.ip);
+  } else {
+    toast('❌ ' + (d.detail || 'Не удалось определить IP'), 'err');
+  }
+}
+
+async function testCf() {
+  const el = document.getElementById('cf-test-result');
+  el.style.color = 'var(--muted)';
+  el.textContent = '⏳ Проверяю...';
+  const r = await authFetch('/api/cf/test', { method: 'POST' });
+  const d = await r.json();
+  if (r.ok) {
+    el.style.color = 'var(--accent2)';
+    el.textContent = '✓ ' + d.message;
+  } else {
+    el.style.color = 'var(--accent)';
+    el.textContent = '✗ ' + (d.detail || 'Ошибка');
+  }
+}
+
+async function refreshLog() {
+  const box = document.getElementById('log-box');
+  const r = await authFetch('/api/log');
+  const d = await r.json();
+  box.textContent = d.log || 'Лог пуст';
+  box.scrollTop = box.scrollHeight;
+}
+
+async function doLogout() {
+  localStorage.removeItem('auth_token');
+  window.location.href = '/login';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+initBackupSelect();
+initBranding();
+
+// Восстановить выбранный бэкап из sessionStorage
+const savedBackup = sessionStorage.getItem('selectedBackup');
+if (savedBackup) {
+  try { selectedBackup = JSON.parse(savedBackup); } catch(e) {}
+}
+const cfConfigured = '{{CF_TOKEN}}' !== '';
+if (!cfConfigured) {
+  document.getElementById('dns-warn-no-cf') && (document.getElementById('dns-warn-no-cf').style.display = 'block');
+}
+const serverLabel = '{{SERVER_LABEL}}';
+if (serverLabel) document.getElementById('server-ip').textContent = '🖥 ' + serverLabel;
+</script>
+
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;opacity:0;transform:translateY(10px);transition:all 0.2s;z-index:999;max-width:320px"></div>
+
+</body>
+</html>

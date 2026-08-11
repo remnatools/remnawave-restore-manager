@@ -1,0 +1,28 @@
+services:
+  restore-manager:
+    build: .
+    container_name: vless4less-restore-manager
+    restart: always
+    env_file:
+      - .env
+    privileged: true
+    pid: host
+    volumes:
+      - ${HOST_BACKUP_ROOT:-/root/vless4less-backups}:/backups
+      - /root/vless4less-restore-manager/data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app/main.py:/app/main.py
+      - ./templates:/app/templates
+      - ${REMNAWAVE_DIR:-/opt/remnawave}:/opt/remnawave
+      - ${BOT_DIR:-/root/remnawave-bedolaga-telegram-bot}:/root/remnawave-bedolaga-telegram-bot
+      - ${CABINET_DIR:-/root/bedolaga-cabinet}:/root/bedolaga-cabinet
+      - /var/log/remnawave_restore.log:/var/log/remnawave_restore.log
+    ports:
+      - "0.0.0.0:9443:8443"
+    networks:
+      - remnawave-network
+
+networks:
+  remnawave-network:
+    name: remnawave-network
+    external: true
