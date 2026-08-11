@@ -10,9 +10,12 @@
 
 Restore Manager устанавливается на **резервном (standby) сервере** и хранит копии бэкапов, поступающих по rsync с основного сервера через [Backup Manager](https://github.com/remnatools/remnawave-backup-manager).
 
-При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель,бот и кабинет работает на резервном.
+При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель, бот и кабинет работает на резервном.
 
-[главная страница](https://github.com/user-attachments/assets/0f52b3f8-6daa-45a4-a4f2-060fff71e354)
+<div align="center">
+  <img width="49%" alt="Главная страница" src="https://github.com/user-attachments/assets/0f52b3f8-6daa-45a4-a4f2-060fff71e354" />
+  <img width="49%" alt="Страница настроек" src="https://github.com/user-attachments/assets/60bc6e03-8331-45cc-8552-17429193877f" />
+</div>
 
 ## Возможности
 
