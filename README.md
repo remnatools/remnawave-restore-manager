@@ -13,8 +13,9 @@ Restore Manager устанавливается на **резервном (standb
 При аварии на основном сервере — открываете браузер, проходите 5 шагов wizard и панель, бот и кабинет работает на резервном.
 
 <div align="center">
-  <img width="49%" alt="Главная страница" src="https://github.com/user-attachments/assets/0f52b3f8-6daa-45a4-a4f2-060fff71e354" />
-  <img width="49%" alt="Страница настроек" src="https://github.com/user-attachments/assets/60bc6e03-8331-45cc-8552-17429193877f" />
+  <img width="30%" alt="Главная страница" src="https://github.com/user-attachments/assets/76fdf230-91f5-4b50-9d67-afb90da3be7c" />
+  <img width="30%" alt="Страница настроек" src="https://github.com/user-attachments/assets/60bc6e03-8331-45cc-8552-17429193877f" />
+  <img width="30%" alt="страница с логами" src="https://github.com/user-attachments/assets/2246380d-4657-48d4-b434-aeac1e80afd0" />
 </div>
 
 ## Возможности
