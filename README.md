@@ -21,7 +21,7 @@ Restore Manager устанавливается на **резервном (standb
 - **DNS переключение** — обновляет A-записи в Cloudflare через API (шаг 3)
 - **Брендинг** — кастомный логотип, favicon, название
 - **Управление бэкапами** — список, удаление, авточистка по лимиту
-- Работает **без nginx** — SSL напрямую через uvicorn (xray занимает порт 443 - резервный сервер как node)
+- Работает **без nginx** — SSL напрямую через uvicorn (xray занимает порт 443 на резервном сервере)
 
 ## Шаги wizard
 
@@ -41,6 +41,15 @@ Restore Manager устанавливается на **резервном (standb
 curl -fsSL https://raw.githubusercontent.com/remnatools/remnawave-restore-manager/main/install.sh | bash
 ```
 
+Скрипт автоматически:
+- Установит Docker и acme.sh
+- Создаст Docker сеть
+- Клонирует репо
+- Запросит логин, пароль и IP сервера
+- Выпустит SSL сертификат (RSA 2048)
+- Откроет порт 9443 в ufw
+- Запустит контейнер
+
 ### Ручная установка
 
 **1. Установить Docker и acme.sh**
@@ -50,23 +59,29 @@ curl -fsSL https://get.docker.com | sh
 curl https://get.acme.sh | sh && source ~/.bashrc
 ```
 
-**2. Клонировать репо**
+**2. Создать Docker сеть**
+
+```bash
+docker network create remnawave-network
+```
+
+**3. Клонировать репо**
 
 ```bash
 git clone https://github.com/remnatools/remnawave-restore-manager.git ~/remnawave-restore-manager
 cd ~/remnawave-restore-manager
 ```
 
-**3. Создать `.env`**
+**4. Создать `.env`**
 
 ```bash
 cp .env.example .env
 nano .env   # задать ADMIN_USER, ADMIN_PASS, HOST_IP
 ```
 
-**4. Выпустить SSL сертификат**
+**5. Выпустить SSL сертификат**
 
-> ⚠️ Используйте RSA 2048 (`--keylength 2048`) — uvicorn не поддерживает EC ключи
+> ⚠️ Используйте `--keylength 2048` (RSA) — uvicorn не поддерживает EC ключи
 
 ```bash
 mkdir -p ~/remnawave-restore-manager/app/ssl
@@ -78,22 +93,27 @@ mkdir -p ~/remnawave-restore-manager/app/ssl
   --fullchain-file ~/remnawave-restore-manager/app/ssl/fullchain.pem
 ```
 
-**5. Создать лог-файл и запустить**
+**6. Создать лог-файл**
 
 ```bash
 touch /var/log/remnawave_restore.log
-docker compose up -d --build
 ```
 
-**6. Открыть firewall**
+**7. Открыть порт в firewall**
 
 ```bash
 ufw allow 9443/tcp
 ```
 
+**8. Запустить**
+
+```bash
+docker compose up -d --build
+```
+
 Интерфейс доступен на `https://YOUR_SERVER_IP:9443`.
 
-### Настройка Cloudflare (для шага 3)
+### Настройка Cloudflare (для шага 3 wizard)
 
 В интерфейсе → **Настройки**:
 
