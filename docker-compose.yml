@@ -1,6 +1,7 @@
 services:
   restore-manager:
     build: .
+    image: remnawave-restore-manager
     container_name: remnawave-restore-manager
     restart: always
     env_file:
