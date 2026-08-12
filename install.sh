@@ -45,9 +45,16 @@ fi
 if [ ! -f ~/.acme.sh/acme.sh ]; then
     info "Устанавливаю acme.sh..."
     echo ""
-    prompt "Email для регистрации SSL сертификатов (Let\'s Encrypt):"
-    read -rp "  Email: " ACME_EMAIL
-    [ -z "$ACME_EMAIL" ] && ACME_EMAIL="admin@example.com"
+    DEFAULT_EMAIL="admin@gmail.com"
+    prompt "Email для регистрации SSL сертификатов (Let\'s Encrypt) [по умолчанию: $DEFAULT_EMAIL]:"
+    read -rp "  Подтвердить? [Y/n]: " CONFIRM_EMAIL
+    if [[ "$CONFIRM_EMAIL" =~ ^[Nn]$ ]]; then
+        read -rp "  Введите email: " ACME_EMAIL
+        [ -z "$ACME_EMAIL" ] && ACME_EMAIL="$DEFAULT_EMAIL"
+    else
+        ACME_EMAIL="$DEFAULT_EMAIL"
+        info "Используется email: $ACME_EMAIL"
+    fi
     curl https://get.acme.sh | sh -s email="$ACME_EMAIL"
     source ~/.bashrc 2>/dev/null || true
     info "acme.sh установлен"
@@ -75,32 +82,41 @@ fi
 cd "$INSTALL_DIR"
 
 # ── 5. .env ───────────────────────────────────────────────────────────────────
-if [ ! -f .env ]; then
-    cp .env.example .env
+cp .env.example .env
 
-    echo ""
-    prompt "Задайте учётные данные для входа в веб-интерфейс:"
-    read -rp "  ADMIN_USER [admin]: " AU
-    while true; do
-        read -rsp "  ADMIN_PASS: " AP; echo ""
-        read -rsp "  ADMIN_PASS (повтор): " AP2; echo ""
-        [ "$AP" = "$AP2" ] && break
-        warn "Пароли не совпадают, попробуйте снова"
-    done
+echo ""
+prompt "Задайте учётные данные для входа в веб-интерфейс:"
+read -rp "  ADMIN_USER [admin]: " AU
+while true; do
+    read -rsp "  ADMIN_PASS: " AP; echo ""
+    read -rsp "  ADMIN_PASS (повтор): " AP2; echo ""
+    [ "$AP" = "$AP2" ] && break
+    warn "Пароли не совпадают, попробуйте снова"
+done
 
-    echo ""
+# 4. IP — автоопределение с подтверждением
+echo ""
+DETECTED_IP=$(curl -fsSL ifconfig.me 2>/dev/null || curl -fsSL api.ipify.org 2>/dev/null || echo "")
+if [ -n "$DETECTED_IP" ]; then
+    prompt "IP этого сервера для переключения DNS [определён автоматически: $DETECTED_IP]:"
+    read -rp "  Подтвердить? [Y/n]: " CONFIRM_IP
+    if [[ "$CONFIRM_IP" =~ ^[Nn]$ ]]; then
+        read -rp "  Введите IP вручную: " HIP
+    else
+        HIP="$DETECTED_IP"
+        info "Используется IP: $HIP"
+    fi
+else
     prompt "IP этого сервера (будет использован при переключении DNS на шаге 3 wizard):"
     read -rp "  HOST_IP: " HIP
-    [ -z "$HIP" ] && warn "HOST_IP не задан — можно указать позже в настройках интерфейса"
-
-    sed -i "s/^ADMIN_USER=.*/ADMIN_USER=${AU:-admin}/" .env
-    sed -i "s/^ADMIN_PASS=.*/ADMIN_PASS=$AP/" .env
-    [ -n "$HIP" ] && sed -i "s/^HOST_IP=.*/HOST_IP=$HIP/" .env
-
-    info ".env настроен"
-else
-    warn ".env уже существует — не перезаписываю"
 fi
+[ -z "$HIP" ] && warn "HOST_IP не задан — можно указать позже в настройках интерфейса"
+
+sed -i "s/^ADMIN_USER=.*/ADMIN_USER=${AU:-admin}/" .env
+sed -i "s/^ADMIN_PASS=.*/ADMIN_PASS=$AP/" .env
+[ -n "$HIP" ] && sed -i "s/^HOST_IP=.*/HOST_IP=$HIP/" .env
+
+info ".env настроен"
 
 # ── 6. Домен и SSL ────────────────────────────────────────────────────────────
 echo ""
