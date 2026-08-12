@@ -1,15 +1,15 @@
 services:
   restore-manager:
     build: .
-    container_name: vless4less-restore-manager
+    container_name: remnawave-restore-manager
     restart: always
     env_file:
       - .env
     privileged: true
     pid: host
     volumes:
-      - ${HOST_BACKUP_ROOT:-/root/vless4less-backups}:/backups
-      - /root/vless4less-restore-manager/data:/app/data
+      - ${HOST_BACKUP_ROOT:-/root/remnawave-backups}:/backups
+      - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
       - ./app/main.py:/app/main.py
       - ./templates:/app/templates
