@@ -44,7 +44,11 @@ fi
 # ── 2. acme.sh ────────────────────────────────────────────────────────────────
 if [ ! -f ~/.acme.sh/acme.sh ]; then
     info "Устанавливаю acme.sh..."
-    curl https://get.acme.sh | sh -s email=admin@localhost
+    echo ""
+    prompt "Email для регистрации SSL сертификатов (Let\'s Encrypt):"
+    read -rp "  Email: " ACME_EMAIL
+    [ -z "$ACME_EMAIL" ] && ACME_EMAIL="admin@example.com"
+    curl https://get.acme.sh | sh -s email="$ACME_EMAIL"
     source ~/.bashrc 2>/dev/null || true
     info "acme.sh установлен"
 else
