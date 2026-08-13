@@ -31,6 +31,51 @@ echo "╔═══════════════════════�
 echo "║    Remnawave Restore Manager — Installer     ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
+echo "  [1] Установить / Обновить"
+echo "  [2] Удалить"
+echo ""
+read -rp "  Выбор [1/2]: " MAIN_ACTION
+
+# ── УДАЛЕНИЕ ──────────────────────────────────────────────────────────────────
+if [ "$MAIN_ACTION" = "2" ]; then
+    echo ""
+    warn "Это удалит контейнер, образ и папку $INSTALL_DIR."
+    warn "Бэкапы в /root/remnawave-backups удалены НЕ будут."
+    echo ""
+    while true; do
+        read -rp "  Продолжить? (yes/no): " CONFIRM_DEL
+        case "$CONFIRM_DEL" in
+            yes) break ;;
+            no)  echo "Отменено." && exit 0 ;;
+            *)   warn "Введите 'yes' для подтверждения или 'no' для отмены" ;;
+        esac
+    done
+
+    info "Останавливаю и удаляю контейнер..."
+    if [ -d "$INSTALL_DIR" ]; then
+        cd "$INSTALL_DIR"
+        docker compose down --rmi local 2>/dev/null || true
+    else
+        docker rm -f remnawave-restore-manager 2>/dev/null || true
+    fi
+
+    info "Удаляю папку $INSTALL_DIR..."
+    rm -rf "$INSTALL_DIR"
+
+    info "Удаляю лог-файл..."
+    rm -f "$LOG_FILE"
+
+    echo ""
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║  ✅  Restore Manager удалён                  ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    exit 0
+fi
+
+[ "$MAIN_ACTION" != "1" ] && error "Некорректный выбор"
+
+# ── УСТАНОВКА ─────────────────────────────────────────────────────────────────
 
 # ── 1. Docker ─────────────────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
@@ -94,7 +139,7 @@ while true; do
     warn "Пароли не совпадают, попробуйте снова"
 done
 
-# 4. IP — автоопределение с подтверждением
+# IP — автоопределение с подтверждением
 echo ""
 DETECTED_IP=$(curl -fsSL ifconfig.me 2>/dev/null || curl -fsSL api.ipify.org 2>/dev/null || echo "")
 if [ -n "$DETECTED_IP" ]; then
@@ -137,22 +182,18 @@ PORT80_NAME=$([ -n "$PORT80_PID" ] && cat /proc/$PORT80_PID/comm 2>/dev/null || 
 
 if [ -n "$PORT80_PID" ]; then
     warn "Порт 80 занят: $PORT80_NAME (PID $PORT80_PID)"
-    echo ""
     echo "  [1] Остановить автоматически"
     echo "  [2] Я остановлю вручную (скрипт подождёт)"
     read -rp "  Выбор [1/2]: " CHOICE80
-
     if [ "$CHOICE80" = "1" ]; then
         kill "$PORT80_PID" 2>/dev/null \
             && info "Процесс $PORT80_NAME (PID $PORT80_PID) остановлен" \
-            || error "Не удалось остановить процесс — остановите вручную и запустите скрипт снова"
+            || error "Не удалось остановить — остановите вручную и запустите скрипт снова"
         sleep 1
     else
-        warn "Остановите процесс вручную:"
-        echo "    kill $PORT80_PID   # $PORT80_NAME"
-        echo ""
+        warn "Остановите процесс вручную: kill $PORT80_PID   # $PORT80_NAME"
         read -rp "  Нажмите Enter когда порт 80 освобождён..."
-        ss -tlnp | grep -q ':80 ' && error "Порт 80 всё ещё занят — запустите скрипт снова"
+        ss -tlnp | grep -q ':80 ' && error "Порт 80 всё ещё занят"
     fi
 else
     info "Порт 80 свободен"
@@ -160,20 +201,108 @@ fi
 
 # Выпуск сертификата — RSA 2048 (uvicorn не поддерживает EC)
 info "Выпускаю SSL сертификат для $DOMAIN (RSA 2048)..."
-$ACME --issue -d "$DOMAIN" \
+ACME_OUT=$($ACME --issue -d "$DOMAIN" \
     --standalone --server letsencrypt \
     --keylength 2048 \
     --key-file "$KEY_FILE" \
-    --fullchain-file "$CERT_FILE" \
-    && info "SSL сертификат получен: $SSL_DIR" \
-    || error "Не удалось получить сертификат. Проверьте что $DOMAIN указывает на этот сервер"
+    --fullchain-file "$CERT_FILE" 2>&1) && ACME_OK=true || ACME_OK=false
+
+if [ "$ACME_OK" = true ]; then
+    info "SSL сертификат получен: $SSL_DIR"
+else
+    # Rate limit
+    RETRY_AFTER=$(echo "$ACME_OUT" | grep -oP 'retry after \K[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC' || true)
+    if [ -n "$RETRY_AFTER" ]; then
+        echo ""
+        warn "Let's Encrypt rate limit: слишком много сертификатов для $DOMAIN"
+        warn "Повтор возможен после: $RETRY_AFTER"
+        echo ""
+        echo "  [1] Подождать и попробовать снова (скрипт будет ждать)"
+        echo "  [2] Использовать другой домен"
+        echo "  [3] Пропустить SSL и продолжить без сертификата (небезопасно)"
+        read -rp "  Выбор [1/2/3]: " RATE_CHOICE
+        case "$RATE_CHOICE" in
+            1)
+                warn "Скрипт ждёт. Нажмите Enter когда будете готовы повторить попытку..."
+                read -rp "  (убедитесь что DNS настроен и лимит сброшен) "
+                info "Повторяю выпуск сертификата..."
+                $ACME --issue -d "$DOMAIN" \
+                    --standalone --server letsencrypt \
+                    --keylength 2048 \
+                    --key-file "$KEY_FILE" \
+                    --fullchain-file "$CERT_FILE" \
+                    && info "SSL сертификат получен" \
+                    || error "Не удалось получить сертификат"
+                ;;
+            2)
+                prompt "Введите новый домен:"
+                read -rp "  Домен: " DOMAIN
+                [ -z "$DOMAIN" ] && error "Домен не может быть пустым"
+                $ACME --issue -d "$DOMAIN" \
+                    --standalone --server letsencrypt \
+                    --keylength 2048 \
+                    --key-file "$KEY_FILE" \
+                    --fullchain-file "$CERT_FILE" \
+                    && info "SSL сертификат получен для $DOMAIN" \
+                    || error "Не удалось получить сертификат"
+                ;;
+            3)
+                warn "Продолжаю без SSL — интерфейс будет доступен только по HTTP"
+                warn "Это небезопасно! Выпустите сертификат позже и пересоберите контейнер."
+                DOMAIN_DISPLAY="http://YOUR_SERVER_IP:9443 (без SSL!)"
+                ;;
+            *)
+                error "Некорректный выбор"
+                ;;
+        esac
+    elif echo "$ACME_OUT" | grep -q "Skipping\|Domains not changed"; then
+        # Сертификат уже есть в кэше acme.sh
+        ACME_CERT=$(find ~/.acme.sh -name "fullchain.cer" 2>/dev/null | grep -i "${DOMAIN}" | head -1 || true)
+        ACME_KEY=$(find ~/.acme.sh -name "*.key" 2>/dev/null | grep -i "${DOMAIN}" | grep -v "account" | head -1 || true)
+        if [ -n "$ACME_CERT" ] && [ -n "$ACME_KEY" ]; then
+            cp "$ACME_CERT" "$CERT_FILE"
+            cp "$ACME_KEY"  "$KEY_FILE"
+            info "Сертификат скопирован из кэша acme.sh"
+        else
+            warn "Сертификат в кэше не найден — выпускаю принудительно..."
+            $ACME --issue -d "$DOMAIN" \
+                --standalone --server letsencrypt \
+                --keylength 2048 \
+                --key-file "$KEY_FILE" \
+                --fullchain-file "$CERT_FILE" \
+                --force \
+                && info "SSL сертификат получен" \
+                || error "Не удалось получить сертификат"
+        fi
+    else
+        # Другая ошибка — показываем и ждём
+        echo ""
+        warn "Ошибка выпуска сертификата:"
+        echo "$ACME_OUT" | tail -5
+        echo ""
+        echo "  [1] Исправить проблему и попробовать снова"
+        echo "  [2] Прервать установку"
+        read -rp "  Выбор [1/2]: " ERR_CHOICE
+        if [ "$ERR_CHOICE" = "1" ]; then
+            warn "Исправьте проблему (DNS, порт 80) и нажмите Enter..."
+            read -rp "  "
+            $ACME --issue -d "$DOMAIN" \
+                --standalone --server letsencrypt \
+                --keylength 2048 \
+                --key-file "$KEY_FILE" \
+                --fullchain-file "$CERT_FILE" \
+                && info "SSL сертификат получен" \
+                || error "Не удалось получить сертификат"
+        else
+            error "Установка прервана"
+        fi
+    fi
+fi
 
 # ── 7. Firewall ───────────────────────────────────────────────────────────────
 echo ""
 if command -v ufw &>/dev/null; then
-    info "Открываю порт 9443 в ufw..."
-    ufw allow 9443/tcp
-    info "Порт 9443 открыт"
+    ufw allow 9443/tcp 2>/dev/null && info "Порт 9443 открыт в ufw" || true
 else
     warn "ufw не найден — откройте порт 9443 вручную в вашем firewall"
 fi
@@ -188,12 +317,13 @@ info "Собираю и запускаю Restore Manager..."
 docker compose up -d --build
 
 # ── Готово ────────────────────────────────────────────────────────────────────
+DOMAIN_DISPLAY="${DOMAIN_DISPLAY:-https://$DOMAIN:9443}"
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  ✅  Remnawave Restore Manager запущен!              ║"
 echo "╠══════════════════════════════════════════════════════╣"
 echo "║                                                      ║"
-printf "║  🌐  https://%-38s║\n" "$DOMAIN:9443"
+printf "║  🌐  %-47s║\n" "$DOMAIN_DISPLAY"
 echo "║                                                      ║"
 echo "║  Следующие шаги:                                     ║"
 echo "║  1. Войдите с логином и паролем из .env              ║"
